@@ -56,7 +56,7 @@ export const deleteUser = async (
 
     const deletedUser = await deleteUserById(userId, session);
     if (!deletedUser)
-      throw new ApiError(`Could not find User with ID=${userId}`);
+      throw new ApiError(`Could not find User with ID=${userId}`, 404);
 
     const deleteUserPostsResult = await deletePostsByUserId(userId, session);
     if (!deleteUserPostsResult.acknowledged)
