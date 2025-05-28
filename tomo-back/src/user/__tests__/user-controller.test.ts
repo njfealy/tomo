@@ -34,6 +34,10 @@ describe("createUserController", () => {
     mockNext = jest.fn();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should return 201 on success", async () => {
     const mockInsertedId = new Object();
     (userModel.insertUser as jest.Mock).mockResolvedValue({
@@ -89,6 +93,10 @@ describe("deleteUserController", () => {
       json: jest.fn(),
     };
     mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it("should return 204 on success", async () => {
@@ -238,6 +246,10 @@ describe("sendFriendRequestController", () => {
     mockNext = jest.fn();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should return 201 on success", async () => {
     (mongo.getClient as jest.Mock).mockReturnValue({
       startSession: () => mockSession,
@@ -382,6 +394,10 @@ describe("cancelFriendRequestController", () => {
     };
     mockNext = jest.fn();
   });
+  
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
   it("should return 201 on success", async () => {
     (mongo.getClient as jest.Mock).mockReturnValue({
@@ -508,6 +524,10 @@ describe("acceptFriendRequestController", () => {
     mockNext = jest.fn();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should return 200 on success", async () => {
     (mongo.getClient as jest.Mock).mockReturnValue({
       startSession: () => mockSession,
@@ -551,7 +571,9 @@ describe("acceptFriendRequestController", () => {
     );
 
     expect(mockSession.abortTransaction).toHaveBeenCalled();
-    expect(mockNext).toHaveBeenCalledWith(new ApiError("Failed to accept Friend Request", 500));
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to accept Friend Request", 500)
+    );
   });
 
   it("should return next with 500 if pullFriendRequestFromSender fails", async () => {
@@ -572,7 +594,9 @@ describe("acceptFriendRequestController", () => {
     );
 
     expect(mockSession.abortTransaction).toHaveBeenCalled();
-    expect(mockNext).toHaveBeenCalledWith(new ApiError("Failed to accept Friend Request", 500));
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to accept Friend Request", 500)
+    );
   });
 
   it("should return next with 500 if pullFriendRequestFromReceiver fails", async () => {
@@ -596,7 +620,9 @@ describe("acceptFriendRequestController", () => {
     );
 
     expect(mockSession.abortTransaction).toHaveBeenCalled();
-    expect(mockNext).toHaveBeenCalledWith(new ApiError("Failed to accept Friend Request", 500));
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to accept Friend Request", 500)
+    );
   });
 
   it("should return next with 500 if addFriendToSender fails", async () => {
@@ -623,7 +649,9 @@ describe("acceptFriendRequestController", () => {
     );
 
     expect(mockSession.abortTransaction).toHaveBeenCalled();
-    expect(mockNext).toHaveBeenCalledWith(new ApiError("Failed to accept Friend Request", 500));
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to accept Friend Request", 500)
+    );
   });
 
   it("should return next with 500 if addFriendToReceiver fails", async () => {
@@ -654,131 +682,233 @@ describe("acceptFriendRequestController", () => {
     );
 
     expect(mockSession.abortTransaction).toHaveBeenCalled();
-    expect(mockNext).toHaveBeenCalledWith(new ApiError("Failed to accept Friend Request", 500));
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to accept Friend Request", 500)
+    );
   });
 });
 
 describe("declineFriendRequestController", () => {
-    let mockReq: Partial<express.Request>;
-    let mockRes: Partial<express.Response>;
-    let mockNext: express.NextFunction;
-  
-    const mockSession = {
-      startTransaction: jest.fn(),
-      commitTransaction: jest.fn(),
-      abortTransaction: jest.fn(),
-      endSession: jest.fn(),
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  const mockSession = {
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn(),
+  };
+
+  const mockDeletedRequest = {
+    recieverId: new ObjectId(),
+    senderId: new ObjectId(),
+  };
+
+  beforeEach(() => {
+    mockReq = {
+      params: {
+        requestId: new ObjectId().toString(),
+      },
     };
-  
-    const mockDeletedRequest = {
-      recieverId: new ObjectId(),
-      senderId: new ObjectId(),
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     };
-  
-    beforeEach(() => {
-      mockReq = {
-        params: {
-          requestId: new ObjectId().toString(),
-        },
-      };
-      mockRes = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-      };
-      mockNext = jest.fn();
+    mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 201 on success", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
     });
-  
-    it("should return 201 on success", async () => {
-      (mongo.getClient as jest.Mock).mockReturnValue({
-        startSession: () => mockSession,
-      });
-      (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(
-        mockDeletedRequest
-      );
-      (userModel.pullFriendRequestFromSender as jest.Mock).mockResolvedValue({
-        acknowledged: true,
-      });
-      (userModel.pullFriendRequestFromReceiver as jest.Mock).mockResolvedValue({
-        acknowledged: true,
-      });
-  
-      await userController.declineFriendRequest(
-        mockReq as express.Request<{ requestId: string }>,
-        mockRes as express.Response,
-        mockNext
-      );
-  
-      expect(mockSession.commitTransaction).toHaveBeenCalled();
-      expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        message: "Successfully declined Friend Request",
-      });
+    (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(
+      mockDeletedRequest
+    );
+    (userModel.pullFriendRequestFromSender as jest.Mock).mockResolvedValue({
+      acknowledged: true,
     });
-  
-    it("should return next with 500 if pullFriendRequest fails", async () => {
-      (mongo.getClient as jest.Mock).mockReturnValue({
-        startSession: () => mockSession,
-      });
-      (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(null);
-  
-      await userController.declineFriendRequest(
-        mockReq as express.Request<{ requestId: string }>,
-        mockRes as express.Response,
-        mockNext
-      );
-  
-      expect(mockSession.abortTransaction).toHaveBeenCalled();
-      expect(mockNext).toHaveBeenCalledWith(
-        new ApiError("Failed to delete Friend Request", 500)
-      );
+    (userModel.pullFriendRequestFromReceiver as jest.Mock).mockResolvedValue({
+      acknowledged: true,
     });
-  
-    it("should return next with 500 if pullFriendRequestFromSender fails", async () => {
-      (mongo.getClient as jest.Mock).mockReturnValue({
-        startSession: () => mockSession,
-      });
-      (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(
-        mockDeletedRequest
-      );
-      (userModel.pullFriendRequestFromSender as jest.Mock).mockResolvedValue({
-        acknowledged: false,
-      });
-  
-      await userController.declineFriendRequest(
-        mockReq as express.Request<{ requestId: string }>,
-        mockRes as express.Response,
-        mockNext
-      );
-  
-      expect(mockSession.abortTransaction).toHaveBeenCalled();
-      expect(mockNext).toHaveBeenCalledWith(
-        new ApiError("Failed to delete Friend Request", 500)
-      );
-    });
-  
-    it("should return next with 500 if pullFriendRequestFromReceiver fails", async () => {
-      (mongo.getClient as jest.Mock).mockReturnValue({
-        startSession: () => mockSession,
-      });
-      (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(
-        mockDeletedRequest
-      );
-      (userModel.pullFriendRequestFromSender as jest.Mock).mockResolvedValue({
-        acknowledged: true,
-      });
-      (userModel.pullFriendRequestFromReceiver as jest.Mock).mockResolvedValue({
-        acknowledged: false,
-      });
-  
-      await userController.declineFriendRequest(
-        mockReq as express.Request<{ requestId: string }>,
-        mockRes as express.Response,
-        mockNext
-      );
-  
-      expect(mockSession.abortTransaction).toHaveBeenCalled();
-      expect(mockNext).toHaveBeenCalledWith(
-        new ApiError("Failed to delete Friend Request", 500)
-      );
+
+    await userController.declineFriendRequest(
+      mockReq as express.Request<{ requestId: string }>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.commitTransaction).toHaveBeenCalled();
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: "Successfully declined Friend Request",
     });
   });
+
+  it("should return next with 500 if pullFriendRequest fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(null);
+
+    await userController.declineFriendRequest(
+      mockReq as express.Request<{ requestId: string }>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to delete Friend Request", 500)
+    );
+  });
+
+  it("should return next with 500 if pullFriendRequestFromSender fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(
+      mockDeletedRequest
+    );
+    (userModel.pullFriendRequestFromSender as jest.Mock).mockResolvedValue({
+      acknowledged: false,
+    });
+
+    await userController.declineFriendRequest(
+      mockReq as express.Request<{ requestId: string }>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to delete Friend Request", 500)
+    );
+  });
+
+  it("should return next with 500 if pullFriendRequestFromReceiver fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (friendRequestModel.pullFriendRequest as jest.Mock).mockResolvedValue(
+      mockDeletedRequest
+    );
+    (userModel.pullFriendRequestFromSender as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+    });
+    (userModel.pullFriendRequestFromReceiver as jest.Mock).mockResolvedValue({
+      acknowledged: false,
+    });
+
+    await userController.declineFriendRequest(
+      mockReq as express.Request<{ requestId: string }>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to delete Friend Request", 500)
+    );
+  });
+});
+
+describe("removeFriendController", () => {
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  const mockSession = {
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn(),
+  };
+
+  beforeEach(() => {
+    mockReq = {
+      body: {
+        userId: new ObjectId(),
+        friendId: new ObjectId(),
+      },
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 200 on success", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (userModel.pullFriend as jest.Mock)
+      .mockResolvedValueOnce({ acknowledged: true })
+      .mockResolvedValueOnce({ acknowledged: true });
+
+    await userController.removeFriend(
+      mockReq as express.Request,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.commitTransaction).toHaveBeenCalled();
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: "Successfully removed Friend",
+    });
+  });
+
+  it("should return next with 500 if removeFromUser fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (userModel.pullFriend as jest.Mock).mockResolvedValueOnce({
+      acknowledged: false,
+    });
+
+    await userController.removeFriend(
+      mockReq as express.Request,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to remove Friend", 500)
+    );
+  });
+
+  it("should return next with 500 if removeFromFriend fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (userModel.pullFriend as jest.Mock)
+      .mockResolvedValueOnce({
+        acknowledged: true,
+      })
+      .mockResolvedValueOnce({
+        acknowledged: false,
+      });
+
+    await userController.removeFriend(
+      mockReq as express.Request,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to remove Friend", 500)
+    );
+  });
+});
