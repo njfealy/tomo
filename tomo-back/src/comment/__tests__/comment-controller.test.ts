@@ -5,6 +5,7 @@ import * as postModel from "@App/post/post-model";
 import * as mongo from "@App/utils/mongo";
 import { ObjectId } from "mongodb";
 import { ApiError } from "@App/utils/api-error";
+import { DeleteCommentRequest } from "../comment.types";
 
 jest.mock("@App/comment/comment-model");
 jest.mock("@App/post/post-model");
@@ -90,7 +91,7 @@ describe("makeCommmentController", () => {
       acknowledged: true,
       insertedId: new ObjectId(),
     });
-    (postModel.addCommentToPost as jest.Mock).mockResolvedValue(null)
+    (postModel.addCommentToPost as jest.Mock).mockResolvedValue(null);
 
     await commentController.makeComment(
       mockReq as express.Request<{ postId: string }>,
@@ -100,5 +101,109 @@ describe("makeCommmentController", () => {
 
     expect(mockSession.abortTransaction).toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalledWith(new ApiError("DB Error"));
+  });
+});
+
+describe("deleteCommentController", () => {
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  const mockSession = {
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn(),
+  };
+
+  beforeEach(() => {
+    mockReq = {
+      params: { postId: new ObjectId().toString() },
+      body: {
+        commentId: new ObjectId().toString(),
+      },
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    mockNext = jest.fn();
+  });
+
+  it("should return 204 on success", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.deleteCommentById as jest.Mock).mockResolvedValue({
+      _id: mockReq.body.commentId,
+      post: mockReq.params!.postId,
+      creator: new ObjectId(),
+      text: "Fake comment text",
+    });
+    (postModel.pullCommentFromPost as jest.Mock).mockResolvedValue({
+      _id: mockReq.params!.postId,
+      creator: new ObjectId(),
+      text: "Fake post text",
+    });
+
+    await commentController.deleteComment(
+      mockReq as express.Request<{ postId: string }, {}, DeleteCommentRequest>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.commitTransaction).toHaveBeenCalled;
+    expect(mockRes.status).toHaveBeenCalledWith(204);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: `Deleted Comment with ID=${mockReq.body.commentId}`,
+    });
+  });
+
+  it("should return next with 404 if deleteCommentById fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.deleteCommentById as jest.Mock).mockResolvedValue(null);
+
+    await commentController.deleteComment(
+      mockReq as express.Request<{ postId: string }, {}, DeleteCommentRequest>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled;
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError(
+        `Could not find Comment with ID=${mockReq.body.commentId}`,
+        404
+      )
+    );
+  });
+
+  it("should return next with 404 if pullCommentFromPost fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.deleteCommentById as jest.Mock).mockResolvedValue({
+      _id: mockReq.body.commentId,
+      post: mockReq.params!.postId,
+      creator: new ObjectId(),
+      text: "Fake comment text",
+    });
+    (postModel.pullCommentFromPost as jest.Mock).mockResolvedValue(null);
+
+    await commentController.deleteComment(
+      mockReq as express.Request<{ postId: string }, {}, DeleteCommentRequest>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled;
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError(
+        `Could not find Post with ID=${mockReq.params!.postId}`,
+        404
+      )
+    );
   });
 });
