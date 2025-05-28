@@ -4,13 +4,16 @@ import * as userModel from "@App/user/user-model";
 import * as mongo from "@App/utils/mongo";
 import * as postModel from "@App/post/post-model";
 import * as commentModel from "@App/comment/comment-model";
+import * as friendRequestModel from "@App/friend-request/friend-request-model";
 import { ObjectId } from "mongodb";
 import { ApiError } from "@App/utils/api-error";
+import { SendFriendRequestRequest } from "../user.types";
 
 jest.mock("@App/user/user-model");
 jest.mock("@App/utils/mongo");
 jest.mock("@App/post/post-model");
 jest.mock("@App/comment/comment-model");
+jest.mock("@App/friend-request/friend-request-model");
 
 describe("createUserController", () => {
   let mockReq: Partial<express.Request>;
@@ -206,5 +209,146 @@ describe("deleteUserController", () => {
 
     expect(mockSession.abortTransaction).toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalledWith(new ApiError("DB Error", 500));
+  });
+});
+
+describe("sendFriendRequestController", () => {
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  const mockSession = {
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn(),
+  };
+
+  beforeEach(() => {
+    mockReq = {
+      params: { userId: new ObjectId().toString() },
+      body: {
+        senderId: new ObjectId().toString(),
+      },
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    mockNext = jest.fn();
+  });
+
+  it("should return 201 on success", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    const mockInsertedId = new ObjectId();
+    (friendRequestModel.insertFriendRequest as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+      insertedId: mockInsertedId,
+    });
+    (userModel.addFriendRequestToReceiver as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+    });
+    (userModel.addFriendRequestToSender as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+    });
+
+    await userController.sendFriendRequest(
+      mockReq as express.Request<
+        { userId: string },
+        {},
+        SendFriendRequestRequest
+      >,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.commitTransaction).toHaveBeenCalled();
+    expect(mockRes.status).toHaveBeenCalledWith(201);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: `Created new Friend Request with ID=${mockInsertedId}`,
+    });
+  });
+
+  it("should return next with 500 if insertFriendRequest fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (friendRequestModel.insertFriendRequest as jest.Mock).mockResolvedValue({
+      acknowledged: false,
+    });
+
+    await userController.sendFriendRequest(
+      mockReq as express.Request<
+        { userId: string },
+        {},
+        SendFriendRequestRequest
+      >,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to insert Friend Request", 500)
+    );
+  });
+
+  it("should return next with 500 if addFriendRequestToReceiver fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (friendRequestModel.insertFriendRequest as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+    });
+    (userModel.addFriendRequestToReceiver as jest.Mock).mockResolvedValue({
+      acknowledged: false,
+    });
+
+    await userController.sendFriendRequest(
+      mockReq as express.Request<
+        { userId: string },
+        {},
+        SendFriendRequestRequest
+      >,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to insert Friend Request", 500)
+    );
+  });
+
+  it("should return next with 500 if addFriendRequestToSender fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (friendRequestModel.insertFriendRequest as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+    });
+    (userModel.addFriendRequestToReceiver as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+    });
+    (userModel.addFriendRequestToSender as jest.Mock).mockResolvedValue({
+      acknowledged: false,
+    });
+
+    await userController.sendFriendRequest(
+      mockReq as express.Request<
+        { userId: string },
+        {},
+        SendFriendRequestRequest
+      >,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError("Failed to insert Friend Request", 500)
+    );
   });
 });
