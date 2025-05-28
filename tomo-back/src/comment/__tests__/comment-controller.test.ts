@@ -38,6 +38,10 @@ describe("makeCommmentController", () => {
     mockNext = jest.fn();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should return with 201 on success", async () => {
     (mongo.getClient as jest.Mock).mockReturnValue({
       startSession: () => mockSession,
@@ -128,6 +132,10 @@ describe("deleteCommentController", () => {
       json: jest.fn(),
     };
     mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it("should return 204 on success", async () => {
@@ -222,6 +230,10 @@ describe("editCommentController", () => {
       json: jest.fn(),
     };
     mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it("should return 204 on success", async () => {

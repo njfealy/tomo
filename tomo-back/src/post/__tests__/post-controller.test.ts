@@ -38,6 +38,10 @@ describe("createPostController", () => {
     mockNext = jest.fn();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should return 201 if InsertOneResult acknowledged", async () => {
     (mongo.getClient as jest.Mock).mockReturnValue({
       startSession: () => mockSession,
@@ -124,6 +128,10 @@ describe("deletePostController", () => {
       json: jest.fn(),
     };
     mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it("should return 204 if success", async () => {
@@ -227,6 +235,10 @@ describe("getPostController", () => {
       json: jest.fn(),
     };
     mockNext = jest.fn()
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it("should return 200 and Post if success", async () => {
