@@ -200,8 +200,59 @@ describe("deleteCommentController", () => {
 
     expect(mockSession.abortTransaction).toHaveBeenCalled;
     expect(mockNext).toHaveBeenCalledWith(
+      new ApiError(`Could not find Post with ID=${mockReq.params!.postId}`, 404)
+    );
+  });
+});
+
+describe("editCommentController", () => {
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  beforeEach(() => {
+    mockReq = {
+      body: {
+        commentId: new ObjectId().toString(),
+        newText: "Fake new comment text",
+      },
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    mockNext = jest.fn();
+  });
+
+  it("should return 204 on success", async () => {
+    (commentModel.updateCommentById as jest.Mock).mockResolvedValue({
+      _id: mockReq.body.commentId,
+    });
+
+    await commentController.editComment(
+      mockReq as express.Request,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockRes.status).toHaveBeenCalledWith(204);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: `Edited Comment with ID=${mockReq.body.commentId}`,
+    });
+  });
+
+  it("should return next with 404 if updateCommentById fails", async () => {
+    (commentModel.updateCommentById as jest.Mock).mockResolvedValue(null);
+
+    await commentController.editComment(
+      mockReq as express.Request,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockNext).toHaveBeenCalledWith(
       new ApiError(
-        `Could not find Post with ID=${mockReq.params!.postId}`,
+        `Could not find Comment with ID=${mockReq.body.commentId}`,
         404
       )
     );
