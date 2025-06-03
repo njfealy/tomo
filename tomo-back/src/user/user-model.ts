@@ -2,8 +2,9 @@ import { ObjectId, ClientSession } from "mongodb";
 import { getDb } from "../utils/mongo";
 
 export interface User {
-  username: string;
-  email: string;
+  displayName: string;
+  googleId: string;
+  email?: string;
   friends?: ObjectId[];
   posts?: ObjectId[];
   friendRequestsIncoming?: ObjectId[];
@@ -14,11 +15,11 @@ const getUserCollection = () => {
   return getDb().collection<User>("users");
 };
 
-export const insertUser = async (username: string, email: string) => {
+export const insertUser = async (displayName: string, googleId: string) => {
   const collection = getUserCollection();
   const user: User = {
-    username,
-    email,
+    displayName,
+    googleId,
   };
 
   return await collection.insertOne(user);
@@ -31,6 +32,12 @@ export const deleteUserById = async (
   const collection = getUserCollection();
 
   return await collection.findOneAndDelete(userId, { session });
+};
+
+export const findUserByGoogleId = async (googleId: string) => {
+  const collection = getUserCollection();
+
+  return await collection.findOne({ googleId });
 };
 
 export const addFriend = async (
