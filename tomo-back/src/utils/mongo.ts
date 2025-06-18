@@ -12,6 +12,10 @@ if (process.env.NODE_ENV === "local") {
 let client: MongoClient;
 let db: Db;
 
+export const getMongoURI = () => {
+  return mongoUri;
+}
+
 export const connectToMongo = async () => {
   if (client) return client;
   try {
