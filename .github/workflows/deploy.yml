@@ -21,10 +21,10 @@ jobs:
         with:
           filters: |
             frontend:
-              - 'frontend/**'
+              - 'tomo-front/**'
               - 'k8s/frontend-*.yaml'
             backend:
-              - 'backend/**'
+              - 'tomo-back/**'
               - 'k8s/backend-*.yaml'
 
   build:
