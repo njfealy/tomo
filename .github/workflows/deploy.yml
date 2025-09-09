@@ -1,0 +1,134 @@
+name: Build and deploy monorepo to AKS
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Detect which services changed (code or manifests)
+      - name: Check which services changed
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'k8s/frontend-*.yaml'
+            backend:
+              - 'backend/**'
+              - 'k8s/backend-*.yaml'
+
+  build:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
+      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+      CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}  # sensitive
+
+      # Conditionally build frontend
+      - name: Build & Push frontend
+        if: needs.detect-changes.outputs.frontend == 'true'
+        run: |
+          az acr build \
+            --image $REGISTRY.azurecr.io/frontend:${{ github.sha }} \
+            --registry $REGISTRY \
+            -g $RESOURCE_GROUP \
+            ./frontend
+
+      # Conditionally build backend
+      - name: Build & Push backend
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: |
+          az acr build \
+            --image $REGISTRY.azurecr.io/backend:${{ github.sha }} \
+            --registry $REGISTRY \
+            -g $RESOURCE_GROUP \
+            ./backend
+
+      # Upload manifests to deploy job
+      - name: Upload manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-manifests
+          path: ./k8s/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build]
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
+      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+      CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}  # sensitive
+
+      - name: Set up kubelogin
+        uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: 'v0.0.25'
+
+      - name: Get AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: $RESOURCE_GROUP
+          cluster-name: $CLUSTER_NAME
+          admin: 'false'
+          use-kubelogin: 'true'
+
+      # Download manifests uploaded by build job
+      - name: Download manifests
+        uses: actions/download-artifact@v4
+        with:
+          name: k8s-manifests
+
+      # Conditionally deploy frontend
+      - name: Deploy frontend
+        if: needs.detect-changes.outputs.frontend == 'true'
+        uses: Azure/k8s-deploy@v4
+        with:
+          action: deploy
+          manifests: ./k8s/frontend-deployment.yaml
+          images: $REGISTRY.azurecr.io/frontend:${{ github.sha }}
+
+      # Conditionally deploy backend
+      - name: Deploy backend
+        if: needs.detect-changes.outputs.backend == 'true'
+        uses: Azure/k8s-deploy@v4
+        with:
+          action: deploy
+          manifests: ./k8s/backend-deployment.yaml
+          images: $REGISTRY.azurecr.io/backend:${{ github.sha }}
