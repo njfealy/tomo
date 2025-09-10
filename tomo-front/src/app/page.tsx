@@ -1,6 +1,13 @@
+'use client'
 import Link from "next/link";
 
+
+
 export default function Home() {
+  const googleLoginHandler = () => {
+    window.location.href = "http://localhost:5001/auth/google"
+  }
+
   return (
     <div className="grid grid-cols-[50%_50%] h-screen">
       <div className="grid place-content-center border-1 text-8xl bg-[#161616]">
@@ -23,7 +30,7 @@ export default function Home() {
         <button className="border-[1.5] rounded-4xl border-gray-400 w-[50%] px-10 py-2 text-2xl">
           Sign In with Google
         </button>
-        <button className="border-[1.5] rounded-4xl border-gray-400 w-[50%] px-10 py-2 text-2xl">
+        <button onClick={googleLoginHandler} className="border-[1.5] rounded-4xl border-gray-400 w-[50%] px-10 py-2 text-2xl">
           Sign In with Google
         </button>
         <div className="h-0.5 w-[50%] bg-gray-300" />
