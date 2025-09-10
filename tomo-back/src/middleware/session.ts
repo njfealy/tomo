@@ -4,8 +4,8 @@ import { getMongoURI } from "@App/utils/mongo";
 
 export const sessionMiddleware = session({
   secret: "supersecret",
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: getMongoURI(),
   }),
