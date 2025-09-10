@@ -1,16 +1,13 @@
 import express, { NextFunction } from "express";
-import {
-  CreatePostRequest,
-  LikePostRequest,
-  UnlikePostRequest,
-} from "./post.types";
 
 import {
   insertPost,
   deletePostById,
   findPostById,
+  findPostsById,
   addLikeToPost,
   pullLikeFromPost,
+  findAllPosts,
 } from "./post-model";
 import { addPostToUser, pullPostFromUser } from "../user/user-model";
 import { deleteCommentsByPostId } from "@App/comment/comment-model";
@@ -18,15 +15,19 @@ import { deleteCommentsByPostId } from "@App/comment/comment-model";
 import { ObjectId } from "mongodb";
 import { getClient } from "@App/utils/mongo";
 import { ApiError } from "../utils/api-error";
+import { addEngagement, removeEngagement } from "@App/utils/trending";
+import { redis } from "@App/utils/redis";
 
 export const createPost = async (
-  req: express.Request<{}, {}, CreatePostRequest>,
+  req: express.Request<{}, {}, { postText: string }>,
   res: express.Response,
   next: express.NextFunction
 ) => {
-  const creatorId = new ObjectId(req.body.creatorId);
+  if (!req.user) return next(new ApiError("Unauthorized", 401));
+  const creatorId = new ObjectId(req.user._id);
   const postText = req.body.postText;
 
+  let postId: ObjectId;
   const session = getClient().startSession();
   try {
     session.startTransaction();
@@ -35,7 +36,7 @@ export const createPost = async (
     if (!insertPostResult || !insertPostResult.acknowledged)
       throw new ApiError("DB Error", 500);
 
-    const postId = insertPostResult.insertedId;
+    postId = insertPostResult.insertedId;
     const addPostToUserResult = await addPostToUser(creatorId, postId, session);
     if (!addPostToUserResult || !addPostToUserResult.acknowledged)
       throw new ApiError("DB Error", 500);
@@ -48,7 +49,9 @@ export const createPost = async (
     return next(error);
   }
 
-  return res.status(201).json({ message: "Post created" });
+  return res
+    .status(201)
+    .json({ message: "Post created", _id: postId.toString() });
 };
 
 export const deletePost = async (
@@ -56,6 +59,7 @@ export const deletePost = async (
   res: express.Response,
   next: express.NextFunction
 ) => {
+  if (!req.user) return next(new ApiError("Unauthorized", 401));
   const postId = new ObjectId(req.params.postId);
 
   const session = getClient().startSession();
@@ -65,6 +69,8 @@ export const deletePost = async (
     const deletePostResult = await deletePostById(postId, session);
     if (!deletePostResult)
       throw new ApiError(`Could not find Post with ID=${postId}`, 404);
+    if (deletePostResult.creator.toString() != req.user._id)
+      throw new ApiError("Unauthorized", 401);
 
     const deletePostCommentsResult = await deleteCommentsByPostId(
       postId,
@@ -107,16 +113,30 @@ export const getPost = async (
   res.status(200).json(post);
 };
 
+export const getAllPosts = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  const allPosts = await findAllPosts();
+  console.log(allPosts);
+  return res.status(200).json(allPosts);
+};
+
 export const likePost = async (
-  req: express.Request<{ postId: string }, {}, LikePostRequest>,
+  req: express.Request<{ postId: string }>,
   res: express.Response,
   next: NextFunction
 ) => {
+  if (!req.user) return next(new ApiError("Unauthorized", 401));
+  const likerId = new ObjectId(req.user._id);
   const postId = new ObjectId(req.params.postId);
-  const likerId = new ObjectId(req.body.likerId);
+  const now = new Date();
 
-  const likePostResult = await addLikeToPost(postId, likerId);
+  const likePostResult = await addLikeToPost(postId, likerId, now);
   if (!likePostResult) return next(new ApiError("DB Error", 500));
+
+  await addEngagement(postId.toString(), "likes", likerId.toString(), now);
 
   return res
     .status(200)
@@ -124,17 +144,59 @@ export const likePost = async (
 };
 
 export const unlikePost = async (
-  req: express.Request<{ postId: string }, {}, UnlikePostRequest>,
+  req: express.Request<{ postId: string }>,
   res: express.Response,
   next: NextFunction
 ) => {
+  if (!req.user) return next(new ApiError("Unauthorized", 401));
+  const likerId = new ObjectId(req.user._id);
   const postId = new ObjectId(req.params.postId);
-  const likerId = new ObjectId(req.body.likerId);
 
-  const likePostResult = await pullLikeFromPost(postId, likerId);
-  if (!likePostResult) return next(new ApiError("DB Error", 500));
+  const session = await getClient().startSession();
+  session.startTransaction();
+  try {
+    console.log("pullLikeFromPost");
+    const likePostResult = await pullLikeFromPost(postId, likerId, session);
+    if (!likePostResult) throw new ApiError("DB Error", 500);
+    const like = likePostResult.likes?.find((like) =>
+      like.user.equals(likerId)
+    );
+    if (!like) throw new ApiError("DB Error", 500);
+
+    console.log("pullEngagement");
+    await removeEngagement(
+      "likes",
+      postId.toString(),
+      likerId.toString(),
+      like.date.getTime()
+    );
+
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    console.log(error);
+    await session.abortTransaction();
+    await session.endSession();
+    return next(error);
+  }
 
   return res
     .status(200)
     .json({ message: `User ID=${likerId} unliked Post ID=${postId}` });
+};
+
+export const getTrendingPosts = async (
+  req: express.Request,
+  res: express.Response,
+  next: NextFunction
+) => {
+  const topPostIds = (await redis.zRange("posts:trending", 0, 19, {
+    REV: true,
+  })) as string[];
+  console.log(topPostIds);
+  const _ids = topPostIds.map((id) => new ObjectId(id));
+
+  const posts = await findPostsById(_ids);
+
+  return res.status(200).json(posts);
 };
