@@ -9,9 +9,13 @@ import {
   deleteUser,
   removeFriend,
   sendFriendRequest,
+  getFriends,
+  searchUsersByName,
+  getUserData
 } from "./user-controller";
 
 router.post("/", createUser);
+router.post("/search", searchUsersByName)
 router.post("/:userId/friend-requests", sendFriendRequest);
 router.patch("/:userId/friend-requests/:requestId/accept", acceptFriendRequest);
 router.delete(
@@ -22,6 +26,8 @@ router.delete(
   "/:userId/friend-requests/:requestId/decline",
   declineFriendRequest
 );
+router.get("/:userId/friends", getFriends)
+router.post("/:userId", getUserData)
 router.delete("/:userId", deleteUser);
 router.patch("/:userId", removeFriend);
 
