@@ -12,7 +12,7 @@ import {
 
 import Image from "next/image";
 import Button from "@/components/Button";
-
+import { API_HOST } from "@/lib/config";
 
 const User = () => {
   const params = useParams() as { userId: string };
@@ -39,7 +39,7 @@ const User = () => {
   const cancelFriendRequestHandler = async () => {
     if (!userInfo?.friendStatus.requestId) return;
 
-    const data = await cancelFriendRequest(
+    await cancelFriendRequest(
       params.userId,
       userInfo.friendStatus.requestId
     );
@@ -56,12 +56,12 @@ const User = () => {
     });
   };
 
-  const unfriendHandler = async () => {};
+  // const unfriendHandler = async () => {};
 
   const acceptFriendRequestHandler = async () => {
     if (!userInfo?.friendStatus.requestId) return;
 
-    const data = await acceptFriendRequest(
+    await acceptFriendRequest(
       params.userId,
       userInfo.friendStatus.requestId
     );
@@ -81,7 +81,7 @@ const User = () => {
   const declineFriendRequestHandler = async () => {
     if (!userInfo?.friendStatus.requestId) return;
 
-    const data = declineFriendRequest(
+    await declineFriendRequest(
       params.userId,
       userInfo.friendStatus.requestId
     );
@@ -103,9 +103,9 @@ const User = () => {
   };
 
   useEffect(() => {
-    console.log(params);
+    // console.log(params);
     const fetchUserData = async () => {
-      const res = await fetch("http://localhost:5001/users/" + params.userId, {
+      const res = await fetch(`${API_HOST}/users/` + params.userId, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -114,17 +114,17 @@ const User = () => {
         credentials: "include",
       });
       const data = await res.json();
-      console.log("userInfo: ", data);
+      // console.log("userInfo: ", data);
       setUserInfo(data);
     };
     fetchUserData();
-  }, []);
+  }, [params.userId]);
   return (
     <div className={"bg-[#222222] h-full"}>
       {modal && (
         <div className="flex justify-center items-center fixed left-0 z-50 top-0 h-screen w-screen bg-black/20 ">
           <div className="flex flex-col justify-between w-[60vw] h-[40vh] bg-[#999999] text-white p-3">
-            <div>{userInfo?.displayName}'s friends</div>
+            <div>{userInfo?.displayName}&apos;s friends</div>
             <div>
               <ul>
                 {userInfo!.friends!.map((friend) => (
@@ -236,9 +236,9 @@ const User = () => {
           <div className="text-white flex justify-center h-full">
             {userInfo.posts ? (
               <ul>
-                {userInfo.posts.map((post) => (
+                {/* {userInfo.posts.map((post) => (
                   <li></li>
-                ))}
+                ))} */}
               </ul>
             ) : (
               <div className="h-full items-center">
