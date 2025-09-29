@@ -16,14 +16,22 @@ const RequestNotif = (props: { notification: Notification }) => {
   });
 
   const acceptFriendRequestHandler = async () => {
-    const data = await acceptFriendRequest(
+    // const data = await acceptFriendRequest(
+    //   props.notification.actor._id,
+    //   props.notification.resource
+    // );
+    await acceptFriendRequest(
       props.notification.actor._id,
       props.notification.resource
     );
   };
 
   const declineFriendRequestHandler = async () => {
-    const data = await declineFriendRequest(
+    // const data = await declineFriendRequest(
+    //   props.notification.actor._id,
+    //   props.notification.resource
+    // );
+    await declineFriendRequest(
       props.notification.actor._id,
       props.notification.resource
     );
@@ -31,7 +39,7 @@ const RequestNotif = (props: { notification: Notification }) => {
 
   return (
     <div className="flex bg-[#111111] items-center rounded-lg text-white p-2 gap-2">
-      <Link href={`http://localhost:3000/${props.notification.actor._id}`}>
+      <Link href={`http://${process.env.FRONT_URL}/${props.notification.actor._id}`}>
         <Image
           src={props.notification.actor.pictureUri}
           alt=""

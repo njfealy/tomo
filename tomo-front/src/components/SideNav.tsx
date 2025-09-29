@@ -7,6 +7,7 @@ import Drawer from "./Drawer";
 import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
+import { API_HOST } from "@/lib/config";
 
 const SideNav = () => {
   const [drawerType, setDrawerType] = useState("hidden");
@@ -40,7 +41,7 @@ const SideNav = () => {
     if (!auth) return;
 
     const fetchNotifications = async () => {
-      const response = await fetch("http://localhost:5001/notifications/", {
+      const response = await fetch(`${API_HOST}/notifications/`, {
         method: "GET",
         credentials: "include",
       });
@@ -150,9 +151,9 @@ const SideNav = () => {
       </div>
 
       {drawerType == "notifications" && (
-        <Drawer type={drawerType} data={notifications} />
+        <Drawer type={drawerType} data={notifications!} />
       )}
-      {drawerType == "search" && <Drawer type={drawerType} />}
+      {drawerType == "search" && <Drawer type={drawerType} data={notifications!} />}
     </div>
   );
 };

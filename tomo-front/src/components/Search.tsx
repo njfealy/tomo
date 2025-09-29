@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { API_HOST } from "@/lib/config";
 
 interface User {
     displayName: string,
@@ -20,7 +21,7 @@ const Search = () => {
     const timeout = setTimeout(async () => {
       if (input.length > 0) {
         const body = JSON.stringify({ search: input });
-        const res = await fetch("http://localhost:5001/users/search/", {
+        const res = await fetch(`${API_HOST}/users/search/`, {
           method: "POST",
           credentials: "include",
           headers: {

@@ -4,8 +4,6 @@ import { PublicUser } from "@/types/user";
 import { useState, useRef } from "react";
 import PostItem from "./Post";
 import Image from "next/image";
-import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 import CommentItem from "./Comment";
 
 const PostModal = (props: {
@@ -53,7 +51,7 @@ const PostModal = (props: {
       <div className="bg-[#282828] w-lg rounded-lg">
         <div className="flex relative justify-center items-center p-3 border-b-[1px] border-b-[#606060]">
           <div className="text-white font-bold text-xl">
-            {post.creator.displayName.split(" ")[0]}'s Post
+            {post.creator.displayName.split(" ")[0]}&apos;s Post
           </div>
           <button
             onClick={props.onClose}

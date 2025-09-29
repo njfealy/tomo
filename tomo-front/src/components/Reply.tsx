@@ -24,7 +24,7 @@ const ReplyItem = (props: {
 
   return (
     <div className="flex w-full pl-3 py-1 gap-2 items-start">
-      <Link href={`http://localhost:3000/${props.reply.creator._id}`}>
+      <Link href={`http://${process.env.FRONT_URL}/${props.reply.creator._id}`}>
         <Image
           src={props.reply.creator.pictureUri}
           alt=""
@@ -37,7 +37,7 @@ const ReplyItem = (props: {
       <div className="w-full">
         <div className="flex-1 max-w-full bg-[#404040] text-[#E0E0E0] p-1 px-2 rounded-lg break-words whitespace-pre-wrap overflow-hidden">
           <Link
-            href={`http://localhost:3000/${props.reply.creator._id}`}
+            href={`http://${process.env.FRONT_URL}/${props.reply.creator._id}`}
             className="font-semibold"
           >
             {props.reply.creator.displayName}

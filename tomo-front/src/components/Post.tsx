@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useContext } from "react";
+import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import Image from "next/image";
 import { Post } from "@/types/post";
@@ -29,7 +29,7 @@ const PostItem = (props: {
   return (
     <div className="flex flex-col gap-3 w-full items-start rounded-xl bg-[#282828] px-3 pt-3 pb-1">
       <div className="flex w-full items-center gap-3">
-        <Link href={`http://localhost:3000/${props.post.creator._id}`}>
+        <Link href={`http://${process.env.FRONT_URL}/${props.post.creator._id}`}>
           <Image
             src={props.post.creator.pictureUri}
             alt=""

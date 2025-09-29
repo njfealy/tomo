@@ -3,7 +3,7 @@ type ButtonType = "primary" | "secondary" | "warning";
 const Button = (props: {
   children: React.ReactNode;
   type: ButtonType;
-  onClick?: () => any;
+  onClick?: () => unknown;
 }) => {
   return (
     <button
