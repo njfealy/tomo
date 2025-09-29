@@ -1,5 +1,6 @@
+import { API_HOST } from "../config";
 export const getPost = async (postId: string) => {
-  const response = await fetch(`http://localhost:5001/posts/${postId}`, {
+  const response = await fetch(`${API_HOST}/posts/${postId}`, {
     method: "GET",
   });
 
@@ -8,7 +9,7 @@ export const getPost = async (postId: string) => {
 };
 
 export const getAllPosts = async () => {
-  const response = await fetch(`http://localhost:5001/posts/`, {
+  const response = await fetch(`${API_HOST}/posts/`, {
     method: "GET",
   });
 
@@ -18,7 +19,7 @@ export const getAllPosts = async () => {
 
 export const createPost = async (postText: string) => {
   const body = JSON.stringify({ postText });
-  const response = await fetch(`http://localhost:5001/posts`, {
+  const response = await fetch(`${API_HOST}/posts`, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -33,7 +34,7 @@ export const createPost = async (postText: string) => {
 };
 
 export const deletePost = async (postId: string) => {
-  const response = await fetch(`http://localhost:5001/posts/${postId}`, {
+  const response = await fetch(`${API_HOST}/posts/${postId}`, {
     method: "DELETE",
     credentials: "include",
     headers: {
@@ -47,7 +48,7 @@ export const deletePost = async (postId: string) => {
 };
 
 export const likePost = async (postId: string) => {
-  const response = await fetch(`http://localhost:5001/posts/${postId}/like`, {
+  const response = await fetch(`${API_HOST}/posts/${postId}/like`, {
     method: "PATCH",
     credentials: "include",
     headers: {
@@ -61,7 +62,7 @@ export const likePost = async (postId: string) => {
 };
 
 export const unlikePost = async (postId: string) => {
-  const response = await fetch(`http://localhost:5001/posts/${postId}/unlike`, {
+  const response = await fetch(`${API_HOST}/posts/${postId}/unlike`, {
     method: "PATCH",
     credentials: "include",
     headers: {
@@ -78,7 +79,7 @@ export const unlikePost = async (postId: string) => {
 export const makeComment = async (postId: string, commentText: string) => {
   const body = JSON.stringify({ commentText });
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments`,
+    `${API_HOST}/posts/${postId}/comments`,
     {
       method: "POST",
       credentials: "include",
@@ -96,7 +97,7 @@ export const makeComment = async (postId: string, commentText: string) => {
 
 export const deleteComent = async (postId: string, commentId: string) => {
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments/${commentId}`,
+    `${API_HOST}/posts/${postId}/comments/${commentId}`,
     {
       method: "DELETE",
       credentials: "include",
@@ -118,7 +119,7 @@ export const editComment = async (
 ) => {
   const body = JSON.stringify({ newText });
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments/${commentId}`,
+    `${API_HOST}/posts/${postId}/comments/${commentId}`,
     {
       method: "PATCH",
       credentials: "include",
@@ -136,7 +137,7 @@ export const editComment = async (
 
 export const likeComment = async (postId: string, commentId: string) => {
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments/${commentId}/like`,
+    `${API_HOST}/posts/${postId}/comments/${commentId}/like`,
     {
       method: "PATCH",
       credentials: "include",
@@ -153,7 +154,7 @@ export const likeComment = async (postId: string, commentId: string) => {
 
 export const unlikeComment = async (postId: string, commentId: string) => {
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments/${commentId}/unlike`,
+    `${API_HOST}/posts/${postId}/comments/${commentId}/unlike`,
     {
       method: "PATCH",
       credentials: "include",
@@ -177,7 +178,7 @@ export const replyToComment = async (
     replyText,
   });
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments/${commentId}/replies`,
+    `${API_HOST}/posts/${postId}/comments/${commentId}/replies`,
     {
       method: "POST",
       credentials: "include",
@@ -195,7 +196,7 @@ export const replyToComment = async (
 
 export const likeReply = async (postId: string, commentId: string, replyId: string) => {
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments/${commentId}/replies/${replyId}/like`,
+    `${API_HOST}/posts/${postId}/comments/${commentId}/replies/${replyId}/like`,
     {
       method: "PATCH",
       credentials: "include",
@@ -212,7 +213,7 @@ export const likeReply = async (postId: string, commentId: string, replyId: stri
 
 export const unlikeReply = async (postId: string, commentId: string, replyId: string) => {
   const response = await fetch(
-    `http://localhost:5001/posts/${postId}/comments/${commentId}/replies/${replyId}/unlike`,
+    `${API_HOST}/posts/${postId}/comments/${commentId}/replies/${replyId}/unlike`,
     {
       method: "PATCH",
       credentials: "include",

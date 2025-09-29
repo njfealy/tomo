@@ -3,8 +3,15 @@ import { io, Socket } from "socket.io-client";
 let socket: Socket | null;
 
 export const getSocket = () => {
+  let URL;
+  if (process.env.NODE_ENV === "production") {
+    URL = "/"
+  } else {
+    URL = "localhost:5001/"
+  }
+
   if (!socket) {
-    socket = io("http://localhost:5001", {
+    socket = io(URL, {
       withCredentials: true,
       transports: ["websocket"],
     });

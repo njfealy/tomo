@@ -1,7 +1,8 @@
+import { API_HOST } from "../config";
 export const sendFriendRequest = async (userId: string) => {
   console.log("Sending friend request");
   const res = await fetch(
-    "http://localhost:5001/users/" + userId + "/friend-requests",
+    `${API_HOST}/users/` + userId + "/friend-requests",
     {
       method: "POST",
       credentials: "include",
@@ -23,7 +24,7 @@ export const cancelFriendRequest = async (
 ) => {
   console.log("cancelling friend request");
   const res = await fetch(
-    `http://localhost:5001/users/${userId}/friend-requests/${requestId}/cancel`,
+    `${API_HOST}/users/${userId}/friend-requests/${requestId}/cancel`,
     {
       method: "DELETE",
       credentials: "include",
@@ -43,7 +44,7 @@ export const acceptFriendRequest = async (
 ) => {
   console.log("Accepting friend request");
   const res = await fetch(
-    `http://localhost:5001/users/${userId}/friend-requests/${requestId}/accept`,
+    `${API_HOST}/users/${userId}/friend-requests/${requestId}/accept`,
     {
       method: "PATCH",
       credentials: "include",
@@ -63,7 +64,7 @@ export const declineFriendRequest = async (
 ) => {
   console.log("Declining friend request");
   const res = await fetch(
-    `http://localhost:5001/users/${userId}/friend-requests/${requestId}/decline`,
+    `${API_HOST}/users/${userId}/friend-requests/${requestId}/decline`,
     {
       method: "DELETE",
       credentials: "include",
