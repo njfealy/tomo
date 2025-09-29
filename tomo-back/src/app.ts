@@ -1,9 +1,9 @@
-import dotenv from "dotenv";
 import path from "path";
 
 if (process.env.NODE_ENV === "local") {
   console.log("Running locally...");
-  dotenv.config({ path: path.resolve(__dirname, "../.env") });
+  const dotenv = require("dotenv");
+  dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 } else {
   console.log("Running with Docker...");
 }
@@ -38,10 +38,10 @@ const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: "http://localhost:3000", // Replace with your frontend's URL
-    methods: ["GET", "POST", "DELETE", "PATCH"], // Allow specific HTTP methods
+    origin: `http://${process.env.FRONT_URL}`,
+    methods: ["GET", "POST", "DELETE", "PATCH"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"], // Allow custom headers
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(sessionMiddleware);
@@ -49,30 +49,26 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(bodyParser.json());
 
-// app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-//   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-//   res.setHeader(
-//     "Acess-Control-Allow-Headers",
-//     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-//   );
-//   next();
-// });
-
-app.use("/posts", postRoutes);
-app.use("/users", userRoutes);
-app.use("/auth", authRoutes);
-app.use("/conversations", conversationRoutes);
-app.use("/socket/", socketRoutes);
-app.use("/notifications", notificationRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/socket/", socketRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.get(
+  "/api/health",
+  (req: express.Request, res: express.Response, next: express.NextFunction) =>
+    res.sendStatus(200)
+);
 app.use(errorHandler);
 
 const server = http.createServer(app);
 setupSocket(server);
 
 cron.schedule("* * * * *", async () => {
-    console.log("[CRON] Recalculating trending scores...");
-    await recalculateTrending();
-  });
+  console.log("[CRON] Recalculating trending scores...");
+  await recalculateTrending();
+});
 
 connectToMongo()
   .then(() =>
