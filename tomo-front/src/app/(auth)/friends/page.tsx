@@ -1,9 +1,10 @@
 "use client";
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../../../context/AuthContext";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { API_HOST } from "@/lib/config";
 
 interface User {
   _id: string;
@@ -36,7 +37,7 @@ const Friends = () => {
     const fetchFriends = async (userId: string) => {
       console.log("fetching friends");
       const response = await fetch(
-        `http://localhost:5001/users/${userId}/friends`,
+        `${API_HOST}/users/${userId}/friends`,
         {
           method: "GET",
           credentials: "include",
@@ -55,7 +56,7 @@ const Friends = () => {
   }, [loading, auth]);
 
   const acceptFriendRequestHandler = async (userId: string, requestId: string) => {
-    const response = await fetch(`http://localhost:5001/users/${userId}/friend-requests/${requestId}/accept`, {
+    const response = await fetch(`${API_HOST}/users/${userId}/friend-requests/${requestId}/accept`, {
       method: "PATCH",
       credentials: "include"
     })
@@ -69,15 +70,15 @@ const Friends = () => {
     }
   }
 
-  const declineFriendRequestHandler = () => {
+  // const declineFriendRequestHandler = () => {
 
-  }
+  // }
 
   const findConversation = async (userId: string, friendId: string) => {
     const body = JSON.stringify({
       memberIds: [userId, friendId],
     });
-    const response = await fetch(`http://localhost:5001/conversations/`, {
+    const response = await fetch(`${API_HOST}/conversations/`, {
       method: "POST",
       headers: {
         Accept: "application/json",
