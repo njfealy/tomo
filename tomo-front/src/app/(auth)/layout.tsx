@@ -1,7 +1,6 @@
 import "../globals.css";
 import SideNav from "../../components/SideNav";
 import { SocketProvider } from "../../context/SocketContext";
-import TopNav from "../../components/TopNav";
 
 export default function Layout({
   children,
