@@ -1,12 +1,25 @@
-FROM node:23-alpine
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+COPY package*.json ./
 RUN npm ci
 
-COPY . .
+COPY tsconfig.json ./
+COPY src ./src
 
-EXPOSE 5001
+RUN npx tsc
 
-CMD ["npm", "start"]
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/dist ./dist
+
+COPY tsconfig-paths-runtime.json ./tsconfig.json
+
+CMD ["node", "-r", "tsconfig-paths/register", "dist/app.js"]
