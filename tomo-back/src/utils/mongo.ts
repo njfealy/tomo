@@ -1,10 +1,19 @@
 import { MongoClient, ServerApiVersion, Db } from "mongodb";
+import fs from "fs";
 
 let mongoUri;
 if (process.env.NODE_ENV === "local") {
   mongoUri = process.env.MONGO_LOCAL_URI!;
 
   console.log(process.env.MONGO_LOCAL_URI || "yay");
+} else if (process.env.NODE_ENV === "production") {
+  const username = fs
+    .readFileSync("/mnt/secrets/mongo-username", "utf8")
+    .trim();
+  const password = fs
+    .readFileSync("/mnt/secrets/mongo-password", "utf8")
+    .trim();
+  mongoUri = `mongodb://${username}:${password}@mongo-0.mongo:27017/?replicaSet=rs0`;
 } else {
   mongoUri = process.env.MONGO_DOCKER_URI!;
 }
