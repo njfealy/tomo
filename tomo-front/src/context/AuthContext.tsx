@@ -1,7 +1,8 @@
 "use client";
-import { createContext, useState, useEffect, useContext } from "react";
-import { SocketContext } from "./SocketContext";
+import { createContext, useState, useEffect } from "react";
+// import { SocketContext } from "./SocketContext";
 import { joinRooms } from "../lib/socket";
+import { API_HOST } from "@/lib/config";
 
 interface User {
   _id: string;
@@ -25,12 +26,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [conversations, setConversations] = useState<string[] | null>(null);
   
   const [loading, setLoading] = useState(true);
-  const socket = useContext(SocketContext)!;
+  console.log(loading);
+  // const socket = useContext(SocketContext)!;
 
   const fetchUser = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5001/auth/me", {
+      const res = await fetch(`${API_HOST}/auth/me`, {
         method: "GET",
         credentials: "include",
       });
@@ -51,7 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchUserConversations = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5001/socket/setup", {
+      const res = await fetch(`${API_HOST}/socket/setup`, {
         method: "GET",
         credentials: "include"
       })
