@@ -5,6 +5,7 @@ import { AuthContext } from "@/context/AuthContext";
 import { SocketContext } from "@/context/SocketContext";
 import { PublicUser } from "@/types/user";
 import Image from "next/image";
+import { API_HOST } from "@/lib/config";
 
 interface Message {
   _id: string;
@@ -66,7 +67,7 @@ const Messages = () => {
 
   useEffect(() => {
     const fetchConversations = async () => {
-      const res = await fetch("http://localhost:5001/conversations", {
+      const res = await fetch(`${API_HOST}/conversations`, {
         method: "GET",
         credentials: "include",
       });
@@ -82,14 +83,13 @@ const Messages = () => {
 
     const fetchCurrentConvo = async () => {
       const res = await fetch(
-        "http://localhost:5001/conversations/" + currentConvo._id,
+        `${API_HOST}/conversations/` + currentConvo._id,
         {
           method: "GET",
           credentials: "include",
         }
       );
       const data = await res.json();
-      console.log;
       setMessages(data.messages);
     };
 
@@ -105,7 +105,7 @@ const Messages = () => {
           .join(", ")
       );
     }
-  }, [currentConvo]);
+  }, [currentConvo, auth]);
 
   useEffect(() => {
     currentConvoRef.current = currentConvo;
