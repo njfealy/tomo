@@ -1,11 +1,12 @@
 'use client'
+import { API_HOST } from "@/lib/config";
 import Link from "next/link";
 
 
 
 export default function Home() {
   const googleLoginHandler = () => {
-    window.location.href = "http://localhost:5001/auth/google"
+    window.location.href = `${API_HOST}/auth/google`
   }
 
   return (
