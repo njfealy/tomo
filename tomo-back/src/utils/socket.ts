@@ -18,9 +18,15 @@ const wrap = (middleware: any) => (socket: any, next: any) => {
 };
 
 export const setupSocket = (server: HTTPServer) => {
+  let URL;
+  if (process.env.NODE_ENV === "production") {
+    URL = "https://nickfealytomo.site"
+  } else {
+    URL = `http://localhost:${process.env.FRONT_PORT}`
+  }
   io = new SocketIOServer(server, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: URL,
       credentials: true,
     },
   });
