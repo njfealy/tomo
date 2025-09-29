@@ -30,7 +30,13 @@ router.get(
   "/google/redirect",
   passport.authenticate("google"),
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    res.redirect("http://localhost:3000/home");
+    let URL;
+    if(process.env.NODE_ENV === "production") {
+      URL = "https://nickfealytomo.site/home"
+    } else {
+      URL = `http://localhost:3000/home`
+    }
+    res.redirect(URL);
   }
 );
 router.get("/google", passport.authenticate("google", { scope: ["profile"] }));
