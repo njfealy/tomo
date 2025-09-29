@@ -60,11 +60,13 @@ const Home = () => {
 
       return [...prev.slice(0, index), updatedPost, ...prev.slice(index + 1)];
     });
-    const likePostResult = await likePost(postId);
+    // const likePostResult = await likePost(postId);
+    await likePost(postId);
   };
 
   const unlikePostHandler = async (postId: string) => {
-    const unlikePostResult = await unlikePost(postId);
+    // const unlikePostResult = await unlikePost(postId);
+    await unlikePost(postId);
     setPosts((prev) => {
       const index = prev.findIndex((post) => post._id === postId);
       if (index === -1) return prev;
@@ -107,7 +109,8 @@ const Home = () => {
 
   const likeCommentHandler = async (postId: string, commentId: string) => {
     console.log("test");
-    const likeCommentResult = await likeComment(postId, commentId);
+    // const likeCommentResult = await likeComment(postId, commentId);
+    await likeComment(postId, commentId);
 
     setPosts((prev) => {
       const postIndex = prev.findIndex((post) => post._id == postId);
@@ -142,7 +145,8 @@ const Home = () => {
   };
 
   const unlikeCommentHandler = async (postId: string, commentId: string) => {
-    const unlikeCommentResult = await unlikeComment(postId, commentId);
+    // const unlikeCommentResult = await unlikeComment(postId, commentId);
+    await unlikeComment(postId, commentId);
     setPosts((prev) => {
       const postIndex = prev.findIndex((post) => post._id == postId);
       if (postIndex == -1) return prev;
