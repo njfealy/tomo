@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  mongo1:
+    image: mongo
+    container_name: mongo1
+    command: ["mongod", "--replSet", "rs0"]
+    ports:
+      - 27017:27017
+    networks:
+      - mongo-net
+    volumes:
+      - mongo1-data:/data/db
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    depends_on:
+      - mongo1
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_URL: "mongodb://mongo1:27017/?replicaSet=rs0"
+      ME_CONFIG_BASICAUTH_USERNAME: admin 
+      ME_CONFIG_BASICAUTH_PASSWORD: secret
+    networks:
+      - mongo-net
+
+  redis1:
+    image: redis
+    container_name: redis1
+    restart: always
+    ports: 
+      - 6379:6379
+
+  redisinsight:
+    image: redis/redisinsight
+    container_name: redisinsight
+    depends_on:
+      - redis1
+    ports:
+      - 5540:5540
+    environment:
+      - RI_APP_HOST=redis1
+
+volumes:
+  mongo1-data:
+
+networks:
+  mongo-net:
