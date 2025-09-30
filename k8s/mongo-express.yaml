@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express
+spec:
+  ports:
+    - port: 8081
+      name: mongo-express
+  selector:
+    app: mongo-express
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      # initContainers:
+      #   - name: build-connection-uri
+      #     image: busybox
+      #     command: ["/bin/sh", "-c"]
+      #     args:
+      #       - |
+      #         USER=$(cat /mnt/secrets/mongo-username)
+      #         PASS=$(cat /mnt/secrets/mongo-password)
+      #         echo "ME_CONFIG_MONGODB_URL=mongodb://${USER}:${password}@mongo-0.mongo.default.svc.cluster.local:27017/?replicaSet=rs0" > /mnt/config/env
+      #     volumeMounts:
+      #       - name: mongo-config
+      #         mountPath: "/mnt/config"
+      #       - name: mongo-secrets-inline
+      #         mountPath: "/mnt/secrets"
+      containers:
+        - name: mongo-express
+          image: mongo-express:1.0.0
+          ports:
+            - containerPort: 8081
+          env:
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secrets-csi
+                  key: username
+            - name: PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secrets-csi
+                  key: password
+            - name: ME_CONFIG_MONGODB_URL
+              value: "mongodb://$(USER):$(PASS)@mongo-0.mongo.default.svc.cluster.local:27017/?replicaSet=rs0&authSource=admin"
+            - name: ME_CONFIG_BASICAUTH
+              value: "false"
+            - name: ME_CONFIG_SITE_BASEURL
+              value: "/mongo"
+      volumes:
+        - name: mongo-secrets-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: tomo-csi
+        # - name: mongo-config
+        #   emptyDir: {}

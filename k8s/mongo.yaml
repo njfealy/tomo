@@ -1,0 +1,86 @@
+# -------------------------
+# Mongo Headless Service
+# -------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+spec:
+  ports:
+    - port: 27017
+      name: mongodb
+  clusterIP: None
+  selector:
+    app: mongo
+
+---
+# -------------------------
+# Mongo StatefulSet
+# -------------------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+spec:
+  serviceName: "mongo"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      initContainers:
+        - name: copy-keyfile
+          image: busybox
+          command:
+            ["/bin/sh", "-c"]
+          args:
+            [
+              "cp /mnt/secrets/mongo-keyfile /mnt/keyfile/mongo-keyfile && chmod 400 /mnt/keyfile/mongo-keyfile"
+            ]
+          volumeMounts:
+            - name: mongo-secrets-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+            - name: mongo-keyfile
+              mountPath: "/mnt/keyfile"
+
+      containers:
+        - name: mongo
+          image: mongo:7.0.24
+          command:
+            - mongod
+            - "--replSet"
+            - rs0
+            - "--auth"
+            - "--keyFile"
+            - "/etc/secrets/mongo-keyfile"
+            - "--bind_ip_all"
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+            - name: mongo-keyfile
+              mountPath: "/etc/secrets"
+              readOnly: true
+      volumes: 
+        - name: mongo-secrets-inline
+          csi: 
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: tomo-csi
+        - name: mongo-keyfile
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
