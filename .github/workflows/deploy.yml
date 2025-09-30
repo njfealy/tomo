@@ -92,8 +92,8 @@ jobs:
       - name: Get AKS context
         uses: azure/aks-set-context@v3
         with:
-          resource-group: ${{env.RESOURCE_GROUP}}
-          cluster-name: ${{env.CLUSTER_NAME}}
+          resource-group: 'tomo-prod-eastus-rg'
+          cluster-name: 'tomo-prod-eastus-aks'
           admin: 'false'
           use-kubelogin: 'true'
 
