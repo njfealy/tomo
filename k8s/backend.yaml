@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: nickfealytomoacr.azurecr.io/tomo-back:latest
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: kv-secrets-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: FRONT_URL
+              value: "frontend:3000"
+            - name: BACK_URL
+              value: "https://nickfealytomo.site/api"
+            - name: PORT 
+              value: "5000"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: MONGO_HOST
+              value: "mongo"
+            - name: MONGO_PORT
+              value: "27017"
+      volumes:
+        - name: kv-secrets-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "tomo-csi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - port: 80
+      targetPort: 5000
+
