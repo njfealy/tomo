@@ -31,6 +31,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    environment: prod
     needs: detect-changes
     permissions:
       contents: read
@@ -67,6 +68,7 @@ jobs:
             
   deploy:
     runs-on: ubuntu-latest
+    environment: prod
     needs: [detect-changes, build]
     permissions:
       actions: read
