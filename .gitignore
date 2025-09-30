@@ -22,8 +22,6 @@ pnpm-debug.log*
 # --- Environment Files ---
 .env
 .env.*
-tomo-front/.env
-tomo-front/.env.*
 
 # --- System & Editor Files ---
 .DS_Store
@@ -41,6 +39,9 @@ tomo-front/next-env.d.ts
 *.local
 docker-compose.override.yml
 .docker/
+
+# --- Secrets
+secrets/
 
 # --- Misc ---
 *.pem

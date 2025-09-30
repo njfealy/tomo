@@ -1,0 +1,272 @@
+import express from "express";
+import * as commentController from "@App/comment/comment-controller";
+import * as commentModel from "@App/comment/comment-model";
+import * as postModel from "@App/post/post-model";
+import * as mongo from "@App/utils/mongo";
+import { ObjectId } from "mongodb";
+import { ApiError } from "@App/utils/api-error";
+import { DeleteCommentRequest } from "../comment.types";
+
+jest.mock("@App/comment/comment-model");
+jest.mock("@App/post/post-model");
+jest.mock("@App/utils/mongo");
+
+describe("makeCommmentController", () => {
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  const mockSession = {
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn(),
+  };
+
+  beforeEach(() => {
+    mockReq = {
+      params: { postId: new ObjectId().toString() },
+      body: {
+        creatorId: new ObjectId().toString(),
+        commentText: "Fake comment text",
+      },
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return with 201 on success", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.insertComment as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+      insertedId: new ObjectId(),
+    });
+    (postModel.addCommentToPost as jest.Mock).mockResolvedValue({
+      _id: new ObjectId(),
+      creator: new ObjectId(),
+      text: "Fake post text",
+    });
+
+    await commentController.makeComment(
+      mockReq as express.Request<{ postId: string }>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.commitTransaction).toHaveBeenCalled();
+    expect(mockRes.status).toHaveBeenCalledWith(201);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: `Comment made on Post ID =${mockReq.params!.postId}`,
+    });
+  });
+
+  it("should return next with 500 if insertComment fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.insertComment as jest.Mock).mockResolvedValue({
+      acknowledged: false,
+    });
+
+    await commentController.makeComment(
+      mockReq as express.Request<{ postId: string }>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(new ApiError("DB Error", 500));
+  });
+
+  it("should return next with 500 if addToPost fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.insertComment as jest.Mock).mockResolvedValue({
+      acknowledged: true,
+      insertedId: new ObjectId(),
+    });
+    (postModel.addCommentToPost as jest.Mock).mockResolvedValue(null);
+
+    await commentController.makeComment(
+      mockReq as express.Request<{ postId: string }>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(new ApiError("DB Error"));
+  });
+});
+
+describe("deleteCommentController", () => {
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  const mockSession = {
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn(),
+  };
+
+  beforeEach(() => {
+    mockReq = {
+      params: { postId: new ObjectId().toString() },
+      body: {
+        commentId: new ObjectId().toString(),
+      },
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 204 on success", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.deleteCommentById as jest.Mock).mockResolvedValue({
+      _id: mockReq.body.commentId,
+      post: mockReq.params!.postId,
+      creator: new ObjectId(),
+      text: "Fake comment text",
+    });
+    (postModel.pullCommentFromPost as jest.Mock).mockResolvedValue({
+      _id: mockReq.params!.postId,
+      creator: new ObjectId(),
+      text: "Fake post text",
+    });
+
+    await commentController.deleteComment(
+      mockReq as express.Request<{ postId: string }, {}, DeleteCommentRequest>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.commitTransaction).toHaveBeenCalled;
+    expect(mockRes.status).toHaveBeenCalledWith(204);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: `Deleted Comment with ID=${mockReq.body.commentId}`,
+    });
+  });
+
+  it("should return next with 404 if deleteCommentById fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.deleteCommentById as jest.Mock).mockResolvedValue(null);
+
+    await commentController.deleteComment(
+      mockReq as express.Request<{ postId: string }, {}, DeleteCommentRequest>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled;
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError(
+        `Could not find Comment with ID=${mockReq.body.commentId}`,
+        404
+      )
+    );
+  });
+
+  it("should return next with 404 if pullCommentFromPost fails", async () => {
+    (mongo.getClient as jest.Mock).mockReturnValue({
+      startSession: () => mockSession,
+    });
+    (commentModel.deleteCommentById as jest.Mock).mockResolvedValue({
+      _id: mockReq.body.commentId,
+      post: mockReq.params!.postId,
+      creator: new ObjectId(),
+      text: "Fake comment text",
+    });
+    (postModel.pullCommentFromPost as jest.Mock).mockResolvedValue(null);
+
+    await commentController.deleteComment(
+      mockReq as express.Request<{ postId: string }, {}, DeleteCommentRequest>,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockSession.abortTransaction).toHaveBeenCalled;
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError(`Could not find Post with ID=${mockReq.params!.postId}`, 404)
+    );
+  });
+});
+
+describe("editCommentController", () => {
+  let mockReq: Partial<express.Request>;
+  let mockRes: Partial<express.Response>;
+  let mockNext: express.NextFunction;
+
+  beforeEach(() => {
+    mockReq = {
+      body: {
+        commentId: new ObjectId().toString(),
+        newText: "Fake new comment text",
+      },
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 204 on success", async () => {
+    (commentModel.updateCommentById as jest.Mock).mockResolvedValue({
+      _id: mockReq.body.commentId,
+    });
+
+    await commentController.editComment(
+      mockReq as express.Request,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockRes.status).toHaveBeenCalledWith(204);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      message: `Edited Comment with ID=${mockReq.body.commentId}`,
+    });
+  });
+
+  it("should return next with 404 if updateCommentById fails", async () => {
+    (commentModel.updateCommentById as jest.Mock).mockResolvedValue(null);
+
+    await commentController.editComment(
+      mockReq as express.Request,
+      mockRes as express.Response,
+      mockNext
+    );
+
+    expect(mockNext).toHaveBeenCalledWith(
+      new ApiError(
+        `Could not find Comment with ID=${mockReq.body.commentId}`,
+        404
+      )
+    );
+  });
+});
