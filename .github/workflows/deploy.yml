@@ -5,6 +5,11 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+env:
+  REGISTRY: ${{secrets.AZURE_CONTAINER_REGISTRY}}
+  RESOURCE_GROUP: ${{secrets.RESOURCE_GROUP}}
+  CLUSTER_NAME: ${{secrets.CLUSTER_NAME}}
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
@@ -14,7 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Detect which services changed (code or manifests)
       - name: Check which services changed
         id: filter
         uses: dorny/paths-filter@v3
@@ -22,10 +26,8 @@ jobs:
           filters: |
             frontend:
               - 'tomo-front/**'
-              - 'k8s/frontend-*.yaml'
             backend:
               - 'tomo-back/**'
-              - 'k8s/backend-*.yaml'
 
   build:
     runs-on: ubuntu-latest
@@ -33,20 +35,16 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    env:
-      REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
-      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
-      CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Azure login
         uses: azure/login@v1
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}  # sensitive
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       # Conditionally build frontend
       - name: Build & Push frontend
@@ -67,34 +65,23 @@ jobs:
             --registry $REGISTRY \
             -g $RESOURCE_GROUP \
             ./backend
-
-      # Upload manifests to deploy job
-      - name: Upload manifests
-        uses: actions/upload-artifact@v4
-        with:
-          name: k8s-manifests
-          path: ./k8s/
-
+            
   deploy:
     runs-on: ubuntu-latest
     needs: [detect-changes, build]
     permissions:
+      actions: read
       contents: read
       id-token: write
-    env:
-      REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
-      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
-      CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Azure login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}  # sensitive
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set up kubelogin
         uses: azure/use-kubelogin@v1
@@ -109,26 +96,18 @@ jobs:
           admin: 'false'
           use-kubelogin: 'true'
 
-      # Download manifests uploaded by build job
-      - name: Download manifests
-        uses: actions/download-artifact@v4
-        with:
-          name: k8s-manifests
-
-      # Conditionally deploy frontend
       - name: Deploy frontend
         if: needs.detect-changes.outputs.frontend == 'true'
         uses: Azure/k8s-deploy@v4
         with:
           action: deploy
-          manifests: ./k8s/frontend-deployment.yaml
+          manifests: ./k8s/frontend.yaml
           images: $REGISTRY.azurecr.io/frontend:${{ github.sha }}
-
-      # Conditionally deploy backend
+      
       - name: Deploy backend
         if: needs.detect-changes.outputs.backend == 'true'
         uses: Azure/k8s-deploy@v4
         with:
           action: deploy
-          manifests: ./k8s/backend-deployment.yaml
+          manifests: ./k8s/backend.yaml
           images: $REGISTRY.azurecr.io/backend:${{ github.sha }}
