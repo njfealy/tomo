@@ -1,0 +1,114 @@
+name: Build and deploy monorepo to AKS
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ${{secrets.AZURE_CONTAINER_REGISTRY}}
+  RESOURCE_GROUP: ${{secrets.RESOURCE_GROUP}}
+  CLUSTER_NAME: ${{secrets.CLUSTER_NAME}}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check which services changed
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'tomo-front/**'
+            backend:
+              - 'tomo-back/**'
+
+  build:
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: detect-changes
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Conditionally build frontend
+      - name: Build & Push frontend
+        if: needs.detect-changes.outputs.frontend == 'true'
+        run: |
+          az acr build \
+            --image $REGISTRY.azurecr.io/frontend:${{ github.sha }} \
+            --registry $REGISTRY \
+            -g $RESOURCE_GROUP \
+            ./frontend
+
+      # Conditionally build backend
+      - name: Build & Push backend
+        if: needs.detect-changes.outputs.backend == 'true'
+        run: |
+          az acr build \
+            --image $REGISTRY.azurecr.io/backend:${{ github.sha }} \
+            --registry $REGISTRY \
+            -g $RESOURCE_GROUP \
+            ./backend
+            
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: [detect-changes, build]
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up kubelogin
+        uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: 'v0.0.25'
+
+      - name: Get AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: 'tomo-prod-eastus-rg'
+          cluster-name: 'tomo-prod-eastus-aks'
+          admin: 'false'
+          use-kubelogin: 'true'
+
+      - name: Deploy frontend
+        if: needs.detect-changes.outputs.frontend == 'true'
+        uses: Azure/k8s-deploy@v4
+        with:
+          action: deploy
+          manifests: ./k8s/frontend.yaml
+          images: $REGISTRY.azurecr.io/frontend:${{ github.sha }}
+      
+      - name: Deploy backend
+        if: needs.detect-changes.outputs.backend == 'true'
+        uses: Azure/k8s-deploy@v4
+        with:
+          action: deploy
+          manifests: ./k8s/backend.yaml
+          images: $REGISTRY.azurecr.io/backend:${{ github.sha }}
