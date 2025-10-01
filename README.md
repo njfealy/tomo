@@ -90,12 +90,21 @@ In addition to the above prerequisites, you must also create a Google Cloud proj
    cd ./tomo-back
    docker compose up -d
    ```
-8. While still in backend folder, wait for MongoDB and Redis to initialize. After, start backend
+7. MongoDB Node driver requires a replica set for transaction support. Here we will configure a single-node replica set:
+   ```sh
+   docker exec -it mongo1 mongosh
+   ```
+   _mongosh:_
+   ```sh
+   rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongo1:27017"}] })
+   exit
+   ```
+7. While still in backend folder, wait for MongoDB and Redis to initialize. After, start backend
    ```sh
    cd ./tomo-back
    npm start
    ```
-9. Do same for frontend
+8. Do same for frontend
    ```sh
    cd ../tomo-front
    npm run dev
