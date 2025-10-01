@@ -41,8 +41,8 @@ services:
       - redis1
     ports:
       - 5540:5540
-    environment:
-      - RI_APP_HOST=redis1
+    # environment:
+    #   - RI_APP_HOST=redis1
 
 volumes:
   mongo1-data:
