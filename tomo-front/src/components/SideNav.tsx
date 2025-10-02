@@ -8,9 +8,11 @@ import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
 import { API_HOST } from "@/lib/config";
+import { useRef } from "react";
 
 const SideNav = () => {
   const [drawerType, setDrawerType] = useState("hidden");
+  const drawerRef = useRef<HTMLDivElement | null>(null);
   const { auth } = useContext(AuthContext)!;
   const socket = useContext(SocketContext);
   const [notifications, setNotifications] = useState<Notification[] | null>(
@@ -51,6 +53,22 @@ const SideNav = () => {
     };
     fetchNotifications();
   }, [auth]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        drawerRef.current &&
+        !drawerRef.current.contains(event.target as Node)
+      ) {
+        setDrawerType("hidden");
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const toggleShowNotifications = () => {
     setDrawerType((prevState) => {
@@ -150,10 +168,11 @@ const SideNav = () => {
         </div>
       </div>
 
-      {drawerType == "notifications" && (
-        <Drawer type={drawerType} data={notifications!} />
+      {drawerType !== "hidden" && (
+        <div ref={drawerRef}>
+          <Drawer type={drawerType} data={notifications!} />
+        </div>
       )}
-      {drawerType == "search" && <Drawer type={drawerType} data={notifications!} />}
     </div>
   );
 };
