@@ -5,7 +5,8 @@
   "main": "src/app.ts",
   "scripts": {
     "start": "NODE_ENV=local ts-node -r tsconfig-paths/register src/app.ts",
-    "test": "jest"
+    "test": "jest",
+    "lint": "npx eslint ."
   },
   "keywords": [],
   "author": "",
@@ -47,7 +48,6 @@
     "mongodb": "^6.16.0",
     "mongoose": "^8.14.2",
     "node-cron": "^4.2.1",
-    "package.json": "^2.0.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "redis": "^5.6.1",
