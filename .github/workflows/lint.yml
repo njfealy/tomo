@@ -39,14 +39,14 @@ jobs:
 
       - name: Lint backend if changed
         if: needs.detect-changes.outputs.backend == 'true'
-        runs: |
+        run: |
           cd ./tomo-back
           npm run lint
           cd ..
 
       - name: Lint frontend if changed
         if: needs.detect-changes.outputs.frontend == 'true'
-        runs: |
+        run: |
           cd ./tomo-front
           npm run lint
           cd .. 
