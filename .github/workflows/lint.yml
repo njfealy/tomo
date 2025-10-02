@@ -1,0 +1,59 @@
+name: Lint on push
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check which services changed
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'tomo-front/**'
+            backend:
+              - 'tomo-back/**'
+  
+  lint:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Lint backend if changed
+        if: needs.detect-changes.outputs.backend == 'true'
+        runs: |
+          cd ./tomo-back
+          npm run lint
+          cd ..
+
+      - name: Lint frontend if changed
+        if: needs.detect-changes.outputs.frontend == 'true'
+        runs: |
+          cd ./tomo-front
+          npm run lint
+          cd .. 
+
+  build_and_deploy:
+    call-child:
+      uses: ./.github/workflows/deploy.yaml
+      with:
+        FRONTEND: ${{ steps.filter.outputs.frontend }}      
+        BACKEND: ${{ steps.filter.outputs.backend }}   
