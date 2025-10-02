@@ -52,7 +52,8 @@ jobs:
           cd .. 
 
   build_and_deploy:
+    needs: detect-changes
     uses: ./.github/workflows/deploy.yaml
     with:
-      FRONTEND: ${{ steps.filter.outputs.frontend }}      
-      BACKEND: ${{ steps.filter.outputs.backend }}   
+      FRONTEND: ${{ needs.detect-changes.steps.filter.outputs.frontend }}      
+      BACKEND: ${{ needs.detect-changes.steps.filter.outputs.backend }}   
