@@ -1,9 +1,19 @@
 name: Build and deploy monorepo to AKS
 
 on:
-  push:
-    branches: ["main"]
+  # push:
+  #   branches: ["main"]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      FRONTEND:
+        description: "String indicating whether frontend repo changed"
+        required: true,
+        type: string
+      BACKEND:
+        description: "String indicating whether backend repo changed"
+        required: true,
+        type: string
 
 env:
   REGISTRY: ${{secrets.AZURE_CONTAINER_REGISTRY}}
