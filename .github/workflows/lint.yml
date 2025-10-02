@@ -3,7 +3,7 @@ name: Lint on push
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:
+  workflow_dispatch
 
 jobs:
   detect-changes:
@@ -52,8 +52,7 @@ jobs:
           cd .. 
 
   build_and_deploy:
-    call-child:
-      uses: ./.github/workflows/deploy.yaml
-      with:
-        FRONTEND: ${{ steps.filter.outputs.frontend }}      
-        BACKEND: ${{ steps.filter.outputs.backend }}   
+    uses: ./.github/workflows/deploy.yaml
+    with:
+      FRONTEND: ${{ steps.filter.outputs.frontend }}      
+      BACKEND: ${{ steps.filter.outputs.backend }}   
